@@ -36,7 +36,7 @@ class RequestHandler():
 
         self.__log_debug("Handling request code: {}".format(code))
 
-        self.__requests_handlers[code](request_obj.payload , request_obj.client_id)
+        return self.__requests_handlers[code](request_obj.payload , request_obj.client_id)
         
 
     def __register_user(self, params_raw, *args):
@@ -46,19 +46,22 @@ class RequestHandler():
             self.__log_debug("Invalid payload for client registration req.")
             return RequestHandler.get_err_response()
 
-        client_name = params_raw[: ClientManager.NAME_SIZE].strip("\x00")
+        client_name = params_raw[: ClientManager.NAME_SIZE].strip(b"\x11")
         if type(client_name) is bytes:
             client_name = client_name.decode("utf-8")
 
         #Return error response if client exists
         if self.__client_mgr.is_client_exist(client_name):
+            self.__log_debug("Client {} already exists!".format(client_name))
             return RequestHandler.get_err_response()
         
         # generate new uuid
         client_id = uuid.uuid4()
         client_id = client_id.bytes_le
+        
+        public_key = params_raw[ClientManager.NAME_SIZE :].strip(b'\x11')
+        public_key.decode("utf-8")
 
-        public_key = params_raw[ClientManager.NAME_SIZE :]
         self.__client_mgr.add_client(client_id, client_name, public_key)
 
         response_obj = response.Response(SUPPORTED_VERSION,
@@ -75,8 +78,15 @@ class RequestHandler():
         clients_list = self.__client_mgr.fetch_all()
 
         for client in clients_list:
-            # concat UUID and name
-            resp_payload += client[0] + client[1]
+            client_id, client_name = client[0], client[1]
+            # concat UUID and name ( name should be 255 bytes and UUID 16)
+            if len(client_id) < ClientManager.CLIENT_ID_SIZE:
+                client_id += b"\x00" * (ClientManager.CLIENT_ID_SIZE - len(client_id))
+
+            if len(client_name) < ClientManager.NAME_SIZE:
+                client_name += b"\x00" * (ClientManager.NAME_SIZE - len(client_name))
+
+            resp_payload += client_id + client_name
 
         response_obj = response.Response(SUPPORTED_VERSION, 
                                             response.CODE_CLIENTS_LIST)
@@ -89,6 +99,8 @@ class RequestHandler():
         request_min_size = (ClientManager.CLIENT_ID_SIZE + \
                                 request.FIELD_SIZE_MSG_TYPE_SIZE + \
                                 request.FIELD_SIZE_MSG_CONTENT_SIZE)
+        
+        self.__log_debug("Sendmsg: {}".format(params_raw))
         # Sanity check
         if len(params_raw) < request_min_size:
             self.__log_debug("Received invalid message request")
@@ -96,33 +108,37 @@ class RequestHandler():
 
         client_id = params_raw[: ClientManager.CLIENT_ID_SIZE]
         if not self.__client_mgr.is_id_valid(client_id):
-            self.__log_critical("Found attempt to send message to \
+            self.__log_critical("attempt to send message to \
                                      nonexistent client")
             return RequestHandler.get_err_response()
 
-        # valide content size
+        # validate content size
         content_size_offset = request.FIELD_SIZE_MSG_TYPE_SIZE + ClientManager.CLIENT_ID_SIZE
         content_size = params_raw[content_size_offset : content_size_offset + \
                                     request.FIELD_SIZE_MSG_CONTENT_SIZE]
 
-        if len(params_raw[: request_min_size]) != content_size:
-            self.__log_critical("Found attempt to send message with bad size")
+        content_size = struct.unpack(">I", content_size)[0]
+        if len(params_raw[request_min_size :]) != content_size:
+            self.__log_critical("attempt to send message with bad size {}".format(content_size))
             return RequestHandler.get_err_response()
 
-        # args always haas the client id
+        # args always has the client id
         client_src = args[0]
         client_dst = client_id
 
+        #validate msg type
         msg_type_offset = ClientManager.CLIENT_ID_SIZE
         msg_type = params_raw[msg_type_offset : msg_type_offset + \
                                  request.FIELD_SIZE_MSG_TYPE_SIZE]
+        
+        msg_type = struct.unpack(">B", msg_type)[0]
         if msg_type not in request.SUPPORTED_MSG_TYPES:
-            self.__log_critical("Found attempt to send unsupported msg type")
+            self.__log_critical("attempt to send unsupported msg type")
             return RequestHandler.get_err_response()
 
         msg_id = self.__messages_mgr.add_message(client_dst,
                                                 client_src, msg_type,
-                                                params_raw[: request_min_size])
+                                                params_raw[request_min_size :])
         if msg_id == None:
             return RequestHandler.get_err_response()
 
@@ -134,13 +150,13 @@ class RequestHandler():
 
     def __get_pubkey(self, params_raw, *args):
         if len(params_raw) != ClientManager.CLIENT_ID_SIZE:
-            self.__log_critical("Found attempt to get pubkey wit bad id")
+            self.__log_critical("attempt to get pubkey with bad id")
             return RequestHandler.get_err_response()
 
         client_id = params_raw
-        pubkey = self.__messages_mgr.get_pub_key(client_id)
+        pubkey = self.__client_mgr.get_pub_key(client_id)
 
-        # we send the public key as we get it (even if no public key found for id)
+        # we send the public key as we get it (even if no public key for id)
         response_obj = response.Response(SUPPORTED_VERSION,
                                          response.CODE_PUBLIC_KEY)
         response_obj.build(pubkey)

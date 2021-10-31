@@ -54,31 +54,39 @@ class Server():
 
         
     def __worker_handle_connection(self, connection_socket):
+        self.__log_debug(self.__client_manager.fetch_all())
+        self.__log_debug(self.__message_manager.fetch_all_messages())
+
         data_received = connection_socket.recv(Request.HEADER_SIZE)
         self.__log_debug("Received : {}".format(data_received))
         if len(data_received) == 0:
             self.__log_debug("Connection ended unexpectedly")
             return
         
-        payload_size = len(data_received)
+        message_size = len(data_received)
         request = Request()
 
         if not request.decode_header(data_received):
-            self.__log_info("Malformed packet received - worker ends")
+            self.__log_info("Malformed packet header received - worker ends")
             resp = RequestHandler.get_err_response()
             connection_socket.send(resp.build())
             return
         
         # continue to receive data
-        payload = data_received[Request.HEADER_SIZE :]
-        while  payload_size < request.payload_size:
+        payload = data_received
+        self.__log_debug("payload_size: {}".format(request.payload_size))
+        while  message_size < request.payload_size + Request.HEADER_SIZE:
             data_received = connection_socket.recv(Server.MAX_PACKET_SIZE)
             payload += data_received
 
             if len(data_received) < Server.MAX_PACKET_SIZE:
                 #No more data to receive (its a stateless protocol!)
                 break
+
+            message_size += len(data_received)
         
+        self.__log_debug("Payload: {}".format(payload))
+
         if not request.decode_payload(payload):
             self.__log_info("Malformed packet received - worker ends")
             resp = RequestHandler.get_err_response()
@@ -87,7 +95,14 @@ class Server():
 
         # Handle the request
         request_handler = RequestHandler(self.__client_manager, self.__message_manager)
-        request_handler.handle(request)
+        resp = request_handler.handle(request)
+        self.__log_debug("Response code: {}".format(resp.code))
+
+        print(resp.build())
+
+        connection_socket.send(resp.build())
+        
+        self.__log_info("finished request!")
 
 
     def __cleanup(self):

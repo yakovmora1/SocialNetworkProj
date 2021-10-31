@@ -24,9 +24,9 @@ SUPPORTED_CODES = (CODE_REGISTER, CODE_LIST_CLIENTS, CODE_SEND_MSG,
 
 
 class RequestHeaderStructure():
-    FIELD_CLIENT_ID = (16, 'B')
-    FIELD_CODE = (1, 'H')
+    FIELD_CLIENT_ID = (16, 's')
     FIELD_VERSION = (1, 'B')
+    FIELD_CODE = (1, 'H')
     FIELD_PAYLOAD_SIZE = (1, 'I')
 
 
@@ -56,7 +56,7 @@ class Request():
 
     def __get_formatter(self):
         # We are parsing little endian data from the network
-        formatter = "<"
+        formatter = ">"
 
         for field, value in vars(RequestHeaderStructure).items():
             if field.isupper():
@@ -92,14 +92,19 @@ class Request():
  
         return True
         
-
+    #the payload also includes the header!
     def decode_payload(self, raw_data):
         assert type(raw_data) == bytes
-        assert len(raw_data) < Request.HEADER_SIZE
+        
+        if len(raw_data) < Request.HEADER_SIZE:
+            self.__log_info("Invalid header size")
+            return False
 
         if len(raw_data) > Request.MAX_PAYLOAD_SIZE:
             self.__log_info("Received payload of unsupported size")
             return False
+
+        self.__log_debug(len(raw_data[Request.HEADER_SIZE :]))
 
         # validate payload size (TODO: should be done in a function)
         if len(raw_data[Request.HEADER_SIZE :]) != self.__header["FIELD_PAYLOAD_SIZE"]:
@@ -120,7 +125,7 @@ class Request():
 
     def __parse_header(self, header):
         unpacked_data = self.__header_struct.unpack(header)
-
+        
         fields = [field for field in vars(RequestHeaderStructure) if field.isupper()]
 
         for index, field in enumerate(fields):

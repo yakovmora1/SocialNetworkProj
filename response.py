@@ -36,7 +36,7 @@ class Response():
 
     def __get_formatter(self):
         # we send the data in little endian
-        format = "<"
+        format = ">"
 
         for field, value in vars(ResponseHeaderStructure).items():
             if field.isupper():
@@ -65,6 +65,10 @@ class Response():
     @property
     def payload(self):
         return self.__payload
+
+    @property
+    def code(self):
+        return self.__code
     
     @property
     def raw_data(self):

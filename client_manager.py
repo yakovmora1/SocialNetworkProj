@@ -16,7 +16,7 @@ class ClientManager(Manager):
         super().__init__(self.__class__.__name__)
 
         sql_create = "CREATE TABLE {}(ID varchar({}) PRIMARY KEY NOT NULL, Name varchar({}),\
-                        PublicKey varchar({}), LastSeen date);".format(self.__table_name,
+                        PublicKey varchar({}), LastSeen timestamp);".format(self.__table_name,
                         self.CLIENT_ID_SIZE, self.NAME_SIZE, self.PUBLIC_KEY_SIZE)
 
         try:
@@ -29,13 +29,18 @@ class ClientManager(Manager):
     
     
     def add_client(self, client_id, client_name, public_key):
-        query = "INSERT INTO {} VALUES(?, ?, ?, {});".format(datetime.now())
-        params = [client_id, client_id, public_key]
+        query = "INSERT INTO {} VALUES(?, ?, ?, ?);".format(self.__table_name)
+        
+        params = [client_id, client_name, public_key, datetime.now()]
+        self.__log_info("Adding new client: ID {} Name {} Key {}".format(
+                        client_id, client_name, public_key)) 
         
         try:
             self.do_sql(query, params)
         except:
             self.__log_exception("Failed to add client")
+
+        print("done")
 
 
     def get_pub_key(self, client_id):
@@ -46,7 +51,8 @@ class ClientManager(Manager):
         rows = self.do_sql(query, params)
 
         if len(rows) > 0:
-            return rows[0]
+            # we choose the first raw and the first value
+            return rows[0][0]
         # no pubkey found so return empty one
         return b""
 
@@ -72,7 +78,7 @@ class ClientManager(Manager):
 
 
     def fetch_all(self):
-        query = "SELECT ID, Name FROM {}".format(self.__table_name)
+        query = "SELECT ID, Name, PublicKey FROM {}".format(self.__table_name)
         rows = []
 
         try:

@@ -22,8 +22,7 @@ class Manager():
 
 
     def init_table(self, table_name, create_query):
-        check_tbl_query = "SELECT name FROM sqlite_master WHERE type=\"table\" \
-                            AND name=?;"
+        check_tbl_query = "SELECT name FROM sqlite_master WHERE type=\"table\" AND name=?;"
 
         rows = self.do_sql(check_tbl_query, [table_name])
         if len(rows) == 0:

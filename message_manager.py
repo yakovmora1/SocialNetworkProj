@@ -59,7 +59,7 @@ class MessageManager(Manager):
     def fetch_messages(self, client_id):
         self.__log_debug("Client {} requested all messages".format(client_id))
 
-        query = "SELECT Content FROM {} WHERE ToClient = ?;".format(client_id)
+        query = "SELECT Content FROM {} WHERE ToClient = ?;".format(self.__table_name)
         params = [client_id]
         rows = []
 
@@ -71,4 +71,13 @@ class MessageManager(Manager):
         return rows
 
         
+    def fetch_all_messages(self):
+        query = "SELECT * FROM {};".format(self.__table_name)
+        params = []
 
+        try:
+            rows = self.do_sql(query, params)
+        except:
+            self.__log_debug("Failed to fetch messages for client")
+
+        return rows
