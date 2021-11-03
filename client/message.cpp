@@ -13,7 +13,9 @@ Message::Message(std::vector<uint8_t> id, uint8_t type,
 {
     _client_id = id;
     if(!is_msg_type_valid(type))
+    {
         throw std::invalid_argument("Message(): invalid message type");
+    }
 
     _message_type = type;
 
@@ -24,11 +26,11 @@ Message::Message(std::vector<uint8_t> id, uint8_t type,
 Message::Message(std::vector<uint8_t> id, uint8_t type)
 {
     _client_id = id;
-    _message_type = type;
     
     if(!is_msg_type_valid(type))
         throw std::invalid_argument("Message(): invalid message type");
 
+    _message_type = type;
     // empty message size
     _content_size = 0;
     _is_msg_valid = true;
@@ -49,10 +51,13 @@ void Message::set_content(std::vector<uint8_t> content)
 bool Message::is_msg_type_valid(uint8_t msg_type)
 {
     uint8_t msg_types[SUPPORTED_MESSAGE_TYPES_NUM] = SUPPORTED_MESSAGE_TYPES;
+    
     for(size_t i = 0; i < sizeof(msg_types); i++)
     {
-        if(msg_type == msg_types[i])
+        if((size_t)msg_type == (size_t)msg_types[i])
+        {
             return true;
+        }
     }
     return false;
 }

@@ -59,7 +59,7 @@ class RequestHandler():
         client_id = uuid.uuid4()
         client_id = client_id.bytes_le
         
-        public_key = params_raw[ClientManager.NAME_SIZE :].strip(b'\x11')
+        public_key = params_raw[ClientManager.NAME_SIZE :]
         public_key.decode("utf-8")
 
         self.__client_mgr.add_client(client_id, client_name, public_key)
@@ -75,7 +75,8 @@ class RequestHandler():
     def __list_clients(self, params_raw, *args):
         resp_payload = b""
 
-        clients_list = self.__client_mgr.fetch_all()
+        # args[0] is the source client id (the one who initiated request)
+        clients_list = self.__client_mgr.fetch_all(args[0])
 
         for client in clients_list:
             client_id, client_name = client[0], client[1]
@@ -159,7 +160,8 @@ class RequestHandler():
         # we send the public key as we get it (even if no public key for id)
         response_obj = response.Response(SUPPORTED_VERSION,
                                          response.CODE_PUBLIC_KEY)
-        response_obj.build(pubkey)
+        # the payload is client id with public key
+        response_obj.build(client_id + pubkey)
         return response_obj
 
             
@@ -172,15 +174,24 @@ class RequestHandler():
 
         payload = b""
         for message in messages:
-            payload += message
+            #add from client field
+            payload += message[0]
+            #add message ID
+            payload += struct.pack(">I", message[1])
+            #add message type
+            payload += struct.pack(">B", message[2] & 0xff)
+            # add payload size
+            payload += struct.pack(">I", len(message[3]))
+            payload += message[3]
 
-        response_obj = response.Response(SUPPORTED_VERSION, 
-                                        response.CODE_MSG_FETCH)
+            #delete this message from table
+            self.__messages_mgr.delete_message(message[1])
+
+        response_obj = response.Response(SUPPORTED_VERSION, response.CODE_MSG_FETCH)
         response_obj.build(payload)
 
         return response_obj
-        
-    
+
 
     @staticmethod
     def get_err_response():

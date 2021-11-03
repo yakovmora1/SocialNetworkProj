@@ -1,5 +1,6 @@
 from threading import Thread, main_thread
 from os import path
+import sys
 import socket
 import logging
 import threading
@@ -31,7 +32,13 @@ class Server():
     def loop(self):
         # endless loop of accepting connections
         while True:
-            connection_socket, connection_addr = self.__server_sock.accept()
+            try:
+                connection_socket, connection_addr = self.__server_sock.accept()
+            except KeyboardInterrupt as e:
+                self.__log_info("Keyboard Interrupt - exiting!")
+                self.__cleanup()
+                sys.exit(1)
+            
             self.__log_info("New Connection from {}".format(connection_addr, ))
 
             self.__spawn_worker(connection_socket)
@@ -54,10 +61,16 @@ class Server():
 
         
     def __worker_handle_connection(self, connection_socket):
-        self.__log_debug(self.__client_manager.fetch_all())
-        self.__log_debug(self.__message_manager.fetch_all_messages())
+        #self.__log_debug(self.__client_manager.fetch_all())
+        #self.__log_debug(self.__message_manager.fetch_all_messages())
+        self.__log_info("Num of clients {}".format(self.__client_manager.number_of_clients))
 
-        data_received = connection_socket.recv(Request.HEADER_SIZE)
+        try:
+            data_received = connection_socket.recv(Request.HEADER_SIZE)
+        except ConnectionResetError:
+            self.__log_exception("Connection abruptly closed - worker exiting")
+            return
+
         self.__log_debug("Received : {}".format(data_received))
         if len(data_received) == 0:
             self.__log_debug("Connection ended unexpectedly")
@@ -76,7 +89,12 @@ class Server():
         payload = data_received
         self.__log_debug("payload_size: {}".format(request.payload_size))
         while  message_size < request.payload_size + Request.HEADER_SIZE:
-            data_received = connection_socket.recv(Server.MAX_PACKET_SIZE)
+            try:
+                data_received = connection_socket.recv(Server.MAX_PACKET_SIZE)
+            except ConnectionResetError:
+                self.__log_info("Connection abruptly closed - worker exiting")
+                return
+
             payload += data_received
 
             if len(data_received) < Server.MAX_PACKET_SIZE:
@@ -85,8 +103,6 @@ class Server():
 
             message_size += len(data_received)
         
-        self.__log_debug("Payload: {}".format(payload))
-
         if not request.decode_payload(payload):
             self.__log_info("Malformed packet received - worker ends")
             resp = RequestHandler.get_err_response()

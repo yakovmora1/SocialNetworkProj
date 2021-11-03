@@ -71,18 +71,20 @@ class ClientManager(Manager):
         query = "SELECT * FROM {} WHERE ID = ?;".format(self.__table_name) 
         params = [client_id]
 
-        # shuold always succeed
+        # should always succeed
         rows = self.do_sql(query, params)
 
         return len(rows) > 0
 
 
-    def fetch_all(self):
-        query = "SELECT ID, Name, PublicKey FROM {}".format(self.__table_name)
+    def fetch_all(self, exempt_client):
+        query = "SELECT ID, Name, PublicKey FROM {} WHERE ID != ?;"
+        query = query.format(self.__table_name)
+        params = [exempt_client]
         rows = []
 
         try:
-            rows = self.do_sql(query)
+            rows = self.do_sql(query, params)
         except:
             self.__log_exception("Failed to fetch clients")
         
@@ -94,7 +96,8 @@ class ClientManager(Manager):
         query = "SELECT * FROM {}".format(self.__table_name)
 
         try:
-            self.do_sql(query)
+            rows = self.do_sql(query)
+            return len(rows)
         except:
             self.__log_debug("Failed to get number of clients")
 

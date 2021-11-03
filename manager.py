@@ -31,7 +31,7 @@ class Manager():
 
 
     def __create_connection(self):
-        self.__connection = sqlite3.connect(self.__db_name)
+        self.__connection = sqlite3.connect(self.__db_name, check_same_thread=False)
         self.__connection.text_factory = bytes
 
 

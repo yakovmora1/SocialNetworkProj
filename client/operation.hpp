@@ -1,3 +1,4 @@
+#pragma once
 #include <vector>
 #include <string>
 #include "request.hpp"
@@ -10,6 +11,12 @@
 #ifndef _OPERATION_H
 #define _OPERATION_H
 
+
+/* Message format strings */
+#define MESSAGE_FORMAT ("\nFrom: %s\nContent:%s\n-----<EOM>----- \n")
+#define SYMM_KEY_REQUEST_MSG ("Request for symmetric Key")
+#define SYMM_KEY_RCVD_MSG ("Symmetric key received")
+
 /* Supported Operation  */
 #define OP_REGISTER (10)
 #define OP_CLIENT_LIST (20)
@@ -18,6 +25,7 @@
 #define OP_SEND_MESSAGE (50)
 #define OP_GET_SYM_KEY (51)
 #define OP_SEND_SYM_KEY (52)
+#define OP_EXIT (0)
 
 #define SUPPORTED_OPERATIONS {OP_REGISTER, OP_CLIENT_LIST, \
                             OP_PUBLIC_KEY_REQUEST,OP_FETCH_MESSAGES, \
@@ -52,7 +60,6 @@ class RegisterOperation : public Operation
         std::string _name;
         std::string _public_key;
 
-        bool _is_request_valid(Request * request);
         std::vector<uint8_t> _create_payload();
         RegisterOperation(Client * client, SOCKET sock);
     
@@ -120,6 +127,7 @@ class GetPublicKeyOperation : public Operation
         }
 
     static const size_t RESPONSE_SIZE = MIN_RESPONSE_SIZE + FIELD_CLIENT_ID_SIZE + PUBLIC_KEY_SIZE;
+    static const size_t PAYLOAD_SIZE = FIELD_CLIENT_ID_SIZE + PUBLIC_KEY_SIZE;
 };
 
 
@@ -195,6 +203,36 @@ class SendTxtOperation : public Operation
     
     static const size_t RESPONSE_SIZE = MIN_RESPONSE_SIZE + FIELD_CLIENT_ID_SIZE + 4;
 
+};
+
+
+class FetchMsgOperation : public Operation
+{
+    private:
+        SOCKET _interface;
+        FetchMsgOperation(Client * client, SOCKET sock);
+        std::vector<uint8_t> _wanted_client_id;
+        std::vector<uint8_t> _contact_id;
+
+        void _fetch_massages(size_t  msg_size);
+        void _handle_msg(Message msg);
+
+    public:
+        static Operation * create(Client * client, SOCKET sock)
+        {
+            return new FetchMsgOperation(client, sock);
+        }
+
+        std::vector<uint8_t> do_operation();
+
+        uint8_t get_operation_num()
+        {
+            return OP_FETCH_MESSAGES;
+        }
+
+        static const size_t MSG_ID_SIZE = 4;
+        static const size_t MIN_MSG_RESPONSE_SIZE = FIELD_CLIENT_ID_SIZE + 
+                                                    MSG_ID_SIZE + 1 + 4;
 };
 
 #endif // _OPERATION_H

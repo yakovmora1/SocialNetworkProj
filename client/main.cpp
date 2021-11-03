@@ -2,19 +2,17 @@
 #include "client.hpp"
 
 
-
-
-
-
 void main()
 {
-    std::cout << "client Started" << std::endl;
+    std::cout << "Client Started" << std::endl;
     Terminal term;
     Client c(term);
+
     try
     {
         c.start();
     }
+
     catch( const std::exception & e)
     {
         std::cout << "Exception" << std::endl;

@@ -27,7 +27,7 @@ typedef enum request_code_e
 #define SUPPORTED_CODES_NUM  (5)
 #define FIELD_VERSION_SIZE (1)
 #define FIELD_CLIENT_ID_SIZE (16)
-#define FILED_REQUEST_CODE_SIZE (2)
+#define FIELD_REQUEST_CODE_SIZE (2)
 
 class Request
 {

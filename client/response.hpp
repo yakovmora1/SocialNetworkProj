@@ -73,20 +73,8 @@ class Response
                                         << std::endl;
 
             output << "payload_size: " << resp._payload_size << std::endl;
-            output << "payload:" << std::endl;
-            for(auto byte : resp._payload)
-            {
-                output << byte << " ";
-                
-                i++;
-                
-                if(10 == i)
-                {
-                    i = 0;
-                    output << "\n";
-                }
-            }
-            output << "\n##################################" << std::endl;
+            print_payload(output, resp._payload);
+            output << "##################################" << std::endl;
             
             return output;
         }

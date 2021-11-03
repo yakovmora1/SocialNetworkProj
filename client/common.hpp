@@ -1,10 +1,14 @@
+#pragma once
 #include <stdint.h>
+#include <vector>
+#include <iostream>
+#include <string>
 
 #ifndef _COMMON_H
 #define _COMMON_H
 
 char neeble_to_hex(uint8_t byte);
-
+void print_payload(std::ostream &output, std::vector<uint8_t> payload);
 
 typedef enum error_code_e
 {
@@ -33,5 +37,10 @@ typedef enum error_code_e
 #define NAME_SIZE (255)
 #define SYMMETRIC_KEY_SIZE (64)
 
-#define MIN_PAYLOAD_SIZE (65536)
+#define MAX_PAYLOAD_SIZE (65536)
+
+#define SERVER_INFO_FILE ("server.info")
+#define CLIENT_ME_FILE   ("me.info")
+
+
 #endif // _COMMON_H

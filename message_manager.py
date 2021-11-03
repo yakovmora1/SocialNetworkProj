@@ -16,7 +16,7 @@ class MessageManager(Manager):
         super().__init__(self.__class__.__name__)
 
         sql_create = "CREATE TABLE {}(ID int  PRIMARY KEY NOT NULL, ToClient varchar({}),\
-                        FromClient varchar({}), Type char, Content BLOB);".format(self.__table_name,
+                        FromClient varchar({}), Type int, Content BLOB);".format(self.__table_name,
                         self.CLIENT_DST_SIZE, self.CLIENT_SRC_SIZE)
 
         try:
@@ -54,12 +54,24 @@ class MessageManager(Manager):
             return None
 
         return msg_id
+
+
+    def delete_message(self, msg_id):
+        query = "DELETE FROM {} WHERE ID = ?;".format(self.__table_name)
+        params = [msg_id]
+        rows = []
         
-    
+        try:
+            rows = self.do_sql(query, params)
+        except:
+            self.__log_debug("Failed to fetch messages for client")
+        
+
+
     def fetch_messages(self, client_id):
         self.__log_debug("Client {} requested all messages".format(client_id))
 
-        query = "SELECT Content FROM {} WHERE ToClient = ?;".format(self.__table_name)
+        query = "SELECT FromClient, ID, Type, Content FROM {} WHERE ToClient = ?;".format(self.__table_name)
         params = [client_id]
         rows = []
 

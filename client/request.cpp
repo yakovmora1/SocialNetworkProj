@@ -48,7 +48,7 @@ Request::Request(std::vector <uint8_t> client_id, uint16_t code,
 std::vector<uint8_t> Request::build_request()
 {
     size_t raw_data_size = _payload_size + FIELD_VERSION_SIZE + 
-                            FIELD_CLIENT_ID_SIZE + FILED_REQUEST_CODE_SIZE +
+                            FIELD_CLIENT_ID_SIZE + FIELD_REQUEST_CODE_SIZE +
                             sizeof(_payload_size);
     _raw_request.insert(_raw_request.end(), _client_id.begin(), _client_id.end());
 
@@ -79,7 +79,7 @@ bool Request::_validate_code(uint16_t code)
     uint16_t supported_codes[SUPPORTED_CODES_NUM] = SUPPORTED_CODES;
     size_t i = 0;
 
-    for(i = 0; i < sizeof(supported_codes); i++)
+    for(i = 0; i < sizeof(supported_codes) / sizeof(uint16_t); i++)
     {
         if(code == supported_codes[i])
         {

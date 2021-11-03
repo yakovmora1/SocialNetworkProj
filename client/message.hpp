@@ -1,3 +1,4 @@
+#pragma once
 #include <vector>
 #include <string>
 #include <iostream>
@@ -22,6 +23,7 @@ typedef enum message_types_e
 
 
 #define SUPPORTED_MESSAGE_TYPES_NUM (4)
+#define MIN_MESSAGE_SIZE (21)
 
 
 class Message
@@ -42,13 +44,25 @@ class Message
 
         void set_content(std::vector<uint8_t> content);
 
-        std::vector<uint8_t> build_msg();
-              //error_code_t parse_msg(std::vector<uint8_t> data);
-        bool is_msg_type_valid(uint8_t msg_type);
-        std::vector<uint8_t> get_raw_message()
+        size_t get_message_type()
         {
-            return _raw_message;
+            return _message_type;
         }
+
+        std::vector<uint8_t> get_id()
+        {
+            return _client_id;
+        }
+
+        std::vector<uint8_t> * get_message_content()
+        {
+            return &_message_content;
+        }
+
+        std::vector<uint8_t> build_msg();
+
+        bool is_msg_type_valid(uint8_t msg_type);
+
         bool is_message_valid();
         
         friend std::ostream & operator<<(std::ostream &output, const Message & msg)

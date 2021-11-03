@@ -13,8 +13,6 @@
 /* Use Winsock2 library */
 #pragma comment(lib, "Ws2_32.lib")
 
-
-#define SERVER_INFO_FILE ("server.info")
 #define MIN_IP_ADDR (7)
 #define MAX_PORT (65535)
 
@@ -25,15 +23,14 @@ class Client
         std::string _name;
         std::vector<uint8_t> _id;
         std::string _pub_key;
+        std::string _private_key;
         std::vector<uint8_t> _symm_key;
         SOCKET _client_socket;
         addrinfo * _sock_addrinfo;
 
         error_code_t get_server_info(std::string & ip, std::string & port);
-        error_code_t init_client_info();
-        error_code_t save_client_info(std::string name, std::vector<uint8_t>);
-
-        /* Winsock dta */ 
+        void _read_client_creds();
+        /* Winsock data */ 
         WSADATA wsa_data;
 
     public:
@@ -48,12 +45,13 @@ class Client
         const std::string getName()
         {
             //return _name;
-            std::string name = "Daniel";
-            for(size_t i = name.length() + 1; i <= NAME_SIZE; i++)
-            {
-                name.append(FILLING_BYTE);
-            }
+            std::string name = "Dor";
             return name;
+        }
+
+        void setName(std::string name)
+        {
+            _name = name;
         }
 
         const std::vector<uint8_t> getID()
@@ -69,11 +67,7 @@ class Client
         const std::string getPubKey()
         {
             //return _pub_key;
-            std::string pub_key = "1234567890ABCDEF";
-            for(size_t i = pub_key.length() + 1; i <= PUBLIC_KEY_SIZE; i++)
-            {
-                pub_key.append(FILLING_BYTE);
-            }
+            std::string pub_key = std::string(PUBLIC_KEY_SIZE, '9');
             return pub_key;
         }
 
@@ -85,6 +79,22 @@ class Client
         bool is_known_contact(std::string name);
 
         bool is_known_contact(std::vector<uint8_t> id);
+
+        void save_client_creds();
+
+        bool is_client_registered();
+
+
+        std::string get_contact_name_by_id(std::vector<uint8_t> id);
+
+        std::vector<uint8_t> get_contact_id_by_name(std::string name);
+        
+        std::vector<uint8_t> get_contact_symkey_by_id(std::vector<uint8_t> id);
+        
+        std::string get_contact_pubkey_by_id(std::vector<uint8_t> id);
+        
+        void update_contact_symm_key_by_id(std::vector<uint8_t> id,
+                                            std::vector<uint8_t> symm_key);
 };
 
 #endif // _CLIENT_H
